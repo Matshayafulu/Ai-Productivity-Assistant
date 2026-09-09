@@ -204,12 +204,29 @@ export function AppLayout({
               <span className="font-medium text-foreground">{breadcrumb}</span>
             </nav>
             <div className="ml-auto flex items-center gap-2.5">
-              <span className="hidden rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground sm:inline">
+              <span className="hidden rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground lg:inline">
                 AI-generated · verify results
               </span>
-              <div className="grid size-8 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-                FM
+              <span className="hidden text-right text-xs leading-tight sm:block">
+                <span className="block font-medium text-foreground">
+                  {displayName || user?.email?.split("@")[0] || "Signed in"}
+                </span>
+                <span className="block text-subtle-foreground">{user?.email}</span>
+              </span>
+              <div
+                className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
+                aria-hidden="true"
+              >
+                {initialsOf(displayName, user?.email)}
               </div>
+              <button
+                onClick={() => void signOut()}
+                className="grid size-9 place-items-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary"
+                aria-label="Sign out"
+                title="Sign out"
+              >
+                <LogOut className="size-4" aria-hidden="true" />
+              </button>
             </div>
           </header>
 
