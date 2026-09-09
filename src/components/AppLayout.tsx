@@ -1,8 +1,10 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   CalendarClock,
   LayoutGrid,
+  LogOut,
   Mail,
   Menu,
   MessageSquare,
@@ -13,6 +15,9 @@ import {
   X,
 } from "lucide-react";
 
+import { supabase } from "@/integrations/supabase/client";
+import { initialsOf, useAccount } from "@/lib/useAccount";
+import { resetUserStore } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 export const NAV_ITEMS = [
