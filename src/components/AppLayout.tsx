@@ -126,10 +126,21 @@ export function AppLayout({
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { user, displayName } = useAccount();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  const signOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    resetUserStore();
+    await supabase.auth.signOut();
+    void navigate({ to: "/auth", replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
