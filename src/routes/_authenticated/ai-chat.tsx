@@ -8,7 +8,7 @@ import { Alert, Button, PageHeader } from "@/components/ui-kit";
 import { useAiTask } from "@/lib/useAiTask";
 import { logActivity, usePersistentState } from "@/lib/storage";
 
-export const Route = createFileRoute("/ai-chat")({
+export const Route = createFileRoute("/_authenticated/ai-chat")({
   head: () => ({
     meta: [
       { title: "AI Workplace Assistant | AI Workplace Assistant" },

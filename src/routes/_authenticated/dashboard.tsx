@@ -12,7 +12,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button, Card } from "@/components/ui-kit";
 import { timeAgo, useActivity, type ActivityKind } from "@/lib/storage";
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/_authenticated/dashboard")({
   head: () => ({
     meta: [
       { title: "Dashboard | AI Workplace Productivity Assistant" },

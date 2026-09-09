@@ -19,7 +19,7 @@ import { useAiTask } from "@/lib/useAiTask";
 import { parseJsonLoose } from "@/lib/prompts";
 import { logActivity, usePersistentState } from "@/lib/storage";
 
-export const Route = createFileRoute("/task-planner")({
+export const Route = createFileRoute("/_authenticated/task-planner")({
   head: () => ({
     meta: [
       { title: "AI Task Planner | AI Workplace Assistant" },
