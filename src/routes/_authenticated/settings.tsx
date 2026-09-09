@@ -5,7 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Alert, Button, Card, Field, PageHeader, Select, TextInput } from "@/components/ui-kit";
 import { usePersistentState } from "@/lib/storage";
 
-export const Route = createFileRoute("/settings")({
+export const Route = createFileRoute("/_authenticated/_authenticated/settings")({
   head: () => ({
     meta: [
       { title: "Settings | AI Workplace Productivity Assistant" },

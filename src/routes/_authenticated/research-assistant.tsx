@@ -8,7 +8,7 @@ import { Alert, Button, Card, Field, PageHeader, Select, TextArea } from "@/comp
 import { useAiTask } from "@/lib/useAiTask";
 import { logActivity, usePersistentState } from "@/lib/storage";
 
-export const Route = createFileRoute("/research-assistant")({
+export const Route = createFileRoute("/_authenticated/_authenticated/research-assistant")({
   head: () => ({
     meta: [
       { title: "AI Research Assistant | AI Workplace Assistant" },

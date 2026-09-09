@@ -8,7 +8,7 @@ import { Alert, Button, Card, Field, PageHeader, Select, TextArea, TextInput } f
 import { useAiTask } from "@/lib/useAiTask";
 import { logActivity, usePersistentState } from "@/lib/storage";
 
-export const Route = createFileRoute("/email-generator")({
+export const Route = createFileRoute("/_authenticated/_authenticated/email-generator")({
   head: () => ({
     meta: [
       { title: "Smart Email Generator | AI Workplace Assistant" },

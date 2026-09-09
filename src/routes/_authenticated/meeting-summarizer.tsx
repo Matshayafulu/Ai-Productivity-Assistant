@@ -8,7 +8,7 @@ import { Alert, Button, Card, Field, PageHeader, TextArea, TextInput } from "@/c
 import { useAiTask } from "@/lib/useAiTask";
 import { logActivity, usePersistentState } from "@/lib/storage";
 
-export const Route = createFileRoute("/meeting-summarizer")({
+export const Route = createFileRoute("/_authenticated/_authenticated/meeting-summarizer")({
   head: () => ({
     meta: [
       { title: "Meeting Notes Summarizer | AI Workplace Assistant" },
