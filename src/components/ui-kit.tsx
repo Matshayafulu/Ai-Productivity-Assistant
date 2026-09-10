@@ -241,7 +241,32 @@ export function EmptyState({
   );
 }
 
+/** Small contextual explanation, shown on hover/focus and to screen readers. */
+export function InfoHint({ label, text }: { label: string; text: string }) {
+  const id = useId();
+  return (
+    <span className="group relative inline-flex align-middle">
+      <button
+        type="button"
+        aria-label={`${label}: ${text}`}
+        aria-describedby={id}
+        className="grid size-4 place-items-center rounded-full border border-border bg-card text-[10px] font-semibold text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <Info className="size-3" aria-hidden="true" />
+      </button>
+      <span
+        id={id}
+        role="tooltip"
+        className="pointer-events-none absolute top-full left-1/2 z-40 mt-1.5 hidden w-60 -translate-x-1/2 rounded-lg border border-border bg-card p-2 text-xs leading-snug text-muted-foreground shadow-md group-focus-within:block group-hover:block"
+      >
+        {text}
+      </span>
+    </span>
+  );
+}
+
 export function PriorityBadge({ priority }: { priority: string }) {
+
   const p = priority.toLowerCase();
   const style =
     p === "high"
