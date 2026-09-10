@@ -3,6 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   CalendarClock,
+  History,
+  HelpCircle,
   LayoutGrid,
   LogOut,
   Mail,
@@ -15,9 +17,11 @@ import {
   X,
 } from "lucide-react";
 
+import { AvailabilityMenu } from "@/components/AvailabilityMenu";
+import { HelpDialog } from "@/components/HelpDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { initialsOf, useAccount } from "@/lib/useAccount";
-import { resetUserStore } from "@/lib/storage";
+import { resetUserStore, setActivityActor, useActivity } from "@/lib/storage";
 import { cn } from "@/lib/utils";
 
 export const NAV_ITEMS = [
@@ -26,7 +30,8 @@ export const NAV_ITEMS = [
   { to: "/meeting-summarizer", label: "Meeting Summarizer", icon: MessageSquare },
   { to: "/task-planner", label: "Task Planner", icon: CalendarClock },
   { to: "/research-assistant", label: "Research Assistant", icon: Search },
-  { to: "/ai-chat", label: "AI Assistant", icon: Sparkles },
+  { to: "/ai-chat", label: "THANDI", icon: Sparkles },
+  { to: "/activity", label: "Activity", icon: History },
   { to: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
@@ -90,6 +95,7 @@ function AiStatusCard() {
 export function ResponsibleAiNotice({ className }: { className?: string }) {
   return (
     <section
+      id="responsible-ai"
       className={cn(
         "glass-panel flex flex-col gap-3 rounded-2xl p-5 sm:flex-row sm:items-start",
         className,
@@ -107,13 +113,53 @@ export function ResponsibleAiNotice({ className }: { className?: string }) {
           Responsible AI Notice
         </h2>
         <p className="mt-1 max-w-[70ch] text-sm leading-relaxed text-muted-foreground">
-          AI-generated content may contain errors or inaccuracies. Review important
+          AI-generated responses may contain errors or inaccuracies. Review important
           information before using it in professional, legal, financial, medical or other
           high-impact situations. Avoid entering confidential or sensitive information
           unless appropriate.
         </p>
       </div>
     </section>
+  );
+}
+
+function SiteFooter({ onHelp }: { onHelp: () => void }) {
+  const linkClass =
+    "rounded text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline";
+
+  return (
+    <footer className="mt-8 border-t border-border pt-6">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-foreground">
+            AI Workplace Productivity Assistant
+          </p>
+          <p className="mt-1 max-w-[46ch] text-sm leading-relaxed text-muted-foreground">
+            AI-powered tools for smarter workplace productivity.
+          </p>
+        </div>
+
+        <nav aria-label="Footer" className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          <a href="#responsible-ai" className={linkClass}>
+            Responsible AI
+          </a>
+          <button type="button" onClick={onHelp} className={linkClass}>
+            Help
+          </button>
+          <Link to="/settings" hash="privacy" className={linkClass}>
+            Privacy
+          </Link>
+          <Link to="/settings" className={linkClass}>
+            Settings
+          </Link>
+        </nav>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-1 border-t border-border pt-4 text-xs text-subtle-foreground sm:flex-row sm:items-center sm:justify-between">
+        <p>© 2026 Fulufhelo Matshaya. All rights reserved.</p>
+        <p>Designed &amp; Developed by Fulufhelo Matshaya</p>
+      </div>
+    </footer>
   );
 }
 
@@ -125,14 +171,22 @@ export function AppLayout({
   children: ReactNode;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, displayName } = useAccount();
+  const { items } = useActivity();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const personName = displayName || user?.email?.split("@")[0] || "Signed in";
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    setActivityActor(personName);
+  }, [personName]);
 
   const signOut = async () => {
     await queryClient.cancelQueries();
@@ -143,7 +197,7 @@ export function AppLayout({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10">
         <div className="absolute -top-40 -left-24 size-[520px] rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute top-1/3 -right-32 size-[460px] rounded-full bg-primary/5 blur-3xl" />
@@ -186,6 +240,12 @@ export function AppLayout({
                   <X className="size-4" aria-hidden="true" />
                 </button>
               </div>
+              <div className="mt-4 rounded-xl border border-border bg-card p-3">
+                <p className="text-sm font-medium text-foreground">{personName}</p>
+                <div className="mt-2">
+                  <AvailabilityMenu compact />
+                </div>
+              </div>
               <div className="mt-4 overflow-y-auto">
                 <NavLinks onNavigate={() => setMenuOpen(false)} />
               </div>
@@ -197,42 +257,69 @@ export function AppLayout({
         ) : null}
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="glass-panel sticky top-0 z-30 flex items-center gap-3 rounded-none border-x-0 border-t-0 px-4 py-3 sm:px-6">
+          <header className="glass-panel sticky top-0 z-30 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-none border-x-0 border-t-0 px-4 py-3 sm:px-6">
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Open navigation menu"
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
-              className="grid size-9 place-items-center rounded-lg border border-border bg-card text-foreground lg:hidden"
+              className="grid size-10 place-items-center rounded-lg border border-border bg-card text-foreground lg:hidden"
             >
               <Menu className="size-4" aria-hidden="true" />
             </button>
-            <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-sm">
-              <span className="hidden text-subtle-foreground sm:inline">Workspace</span>
-              <span className="hidden text-subtle-foreground sm:inline" aria-hidden="true">
-                /
-              </span>
-              <span className="font-medium text-foreground">{breadcrumb}</span>
-            </nav>
-            <div className="ml-auto flex items-center gap-2.5">
-              <span className="hidden rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground lg:inline">
-                AI-generated · verify results
-              </span>
-              <span className="hidden text-right text-xs leading-tight sm:block">
-                <span className="block font-medium text-foreground">
-                  {displayName || user?.email?.split("@")[0] || "Signed in"}
-                </span>
-                <span className="block text-subtle-foreground">{user?.email}</span>
-              </span>
-              <div
-                className="grid size-8 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
-                aria-hidden="true"
+
+            <div className="min-w-0">
+              <p className="truncate text-[11px] text-subtle-foreground">
+                AI Workplace Productivity Assistant
+              </p>
+              <p className="truncate text-sm font-semibold text-foreground">{breadcrumb}</p>
+            </div>
+
+            <div className="ml-auto flex min-w-0 items-center gap-2">
+              <Link
+                to="/activity"
+                aria-label={`Activity — ${items.length} recorded actions`}
+                title="Activity"
+                className="relative grid size-10 place-items-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary"
               >
-                {initialsOf(displayName, user?.email)}
+                <History className="size-4" aria-hidden="true" />
+                {items.length > 0 ? (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-4 rounded-full bg-primary px-1 text-[10px] leading-4 font-semibold text-primary-foreground"
+                    aria-hidden="true"
+                  >
+                    {items.length > 99 ? "99+" : items.length}
+                  </span>
+                ) : null}
+              </Link>
+
+              <button
+                onClick={() => setHelpOpen(true)}
+                aria-label="Open help"
+                title="Help"
+                className="grid size-10 place-items-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary"
+              >
+                <HelpCircle className="size-4" aria-hidden="true" />
+              </button>
+
+              <div className="hidden items-center gap-2 sm:flex">
+                <div
+                  className="grid size-9 shrink-0 place-items-center rounded-full bg-accent text-xs font-semibold text-accent-foreground"
+                  aria-hidden="true"
+                >
+                  {initialsOf(displayName, user?.email)}
+                </div>
+                <div className="min-w-0 leading-tight">
+                  <span className="block truncate text-xs font-medium text-foreground">
+                    {personName}
+                  </span>
+                  <AvailabilityMenu />
+                </div>
               </div>
+
               <button
                 onClick={() => void signOut()}
-                className="grid size-9 place-items-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary"
+                className="grid size-10 place-items-center rounded-lg border border-border bg-card text-foreground transition-colors hover:bg-secondary"
                 aria-label="Sign out"
                 title="Sign out"
               >
@@ -245,11 +332,14 @@ export function AppLayout({
             {children}
           </main>
 
-          <footer className="mx-auto w-full max-w-6xl px-4 pb-8 sm:px-6">
+          <div className="mx-auto w-full max-w-6xl px-4 pb-8 sm:px-6">
             <ResponsibleAiNotice />
-          </footer>
+            <SiteFooter onHelp={() => setHelpOpen(true)} />
+          </div>
         </div>
       </div>
+
+      <HelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }
