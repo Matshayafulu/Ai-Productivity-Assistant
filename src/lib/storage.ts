@@ -173,38 +173,103 @@ export function usePersistentState<T>(key: string, initial: T) {
   return [value, update, hydrated] as const;
 }
 
+/* ------------------------------------------------------------------ *
+ * Activity tracker / lightweight audit trail.
+ * Every meaningful action is recorded the moment it happens, with the
+ * real system time stored in ISO 8601 (with local offset).
+ * ------------------------------------------------------------------ */
+
 export type ActivityKind = "email" | "meeting" | "planner" | "research" | "chat";
 
 export type ActivityItem = {
+  /** Stable record id. */
   id: string;
   kind: ActivityKind;
+  /** Short activity name, e.g. "Email generated". */
   title: string;
+  /** Human description of what happened (non-sensitive, truncated). */
   detail: string;
+  /** Original event time, epoch ms. Never changes. */
   at: number;
+  /** Original event time, ISO 8601 with local offset. Never changes. */
+  ts: string;
+  /** Who performed it, where known (display name or email prefix). */
+  actor?: string;
+  /** Small non-sensitive extras, e.g. { tone: "Formal" }. */
+  meta?: Record<string, string>;
 };
 
 const ACTIVITY_KEY = "activity";
+const ACTIVITY_LIMIT = 200;
 
-export function logActivity(kind: ActivityKind, title: string, detail: string) {
+let actorLabel = "";
+
+/** Records who is performing actions, for the audit trail. */
+export function setActivityActor(label: string) {
+  actorLabel = label;
+}
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** ISO 8601 timestamp including the local UTC offset, e.g. 2026-09-10T08:46:18+02:00. */
+export function isoWithOffset(date: Date) {
+  const offset = -date.getTimezoneOffset();
+  const sign = offset >= 0 ? "+" : "-";
+  const abs = Math.abs(offset);
+  return (
+    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+    `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+    `${sign}${pad(Math.floor(abs / 60))}:${pad(abs % 60)}`
+  );
+}
+
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+/** Readable event time, e.g. "10 Sep 2026 • 08:46:18". */
+export function formatTimestamp(at: number) {
+  const d = new Date(at);
+  return (
+    `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()} • ` +
+    `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+}
+
+export function logActivity(
+  kind: ActivityKind,
+  title: string,
+  detail: string,
+  meta?: Record<string, string>,
+) {
+  const now = new Date();
   const items = readValue<ActivityItem[]>(ACTIVITY_KEY, []);
-  const next = [
-    {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      kind,
-      title,
-      detail: detail.slice(0, 90),
-      at: Date.now(),
-    },
-    ...items,
-  ].slice(0, 12);
-  writeValue(ACTIVITY_KEY, next);
+  const entry: ActivityItem = {
+    id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+    kind,
+    title,
+    detail: detail.slice(0, 120),
+    at: now.getTime(),
+    ts: isoWithOffset(now),
+    ...(actorLabel ? { actor: actorLabel } : {}),
+    ...(meta ? { meta } : {}),
+  };
+  writeValue(ACTIVITY_KEY, [entry, ...items].slice(0, ACTIVITY_LIMIT));
+}
+
+/** Normalises older records that predate the ISO timestamp field. */
+function normalise(items: ActivityItem[]): ActivityItem[] {
+  return items.map((item) =>
+    item.ts ? item : { ...item, ts: isoWithOffset(new Date(item.at)) },
+  );
 }
 
 export function useActivity() {
   const [items, setItems] = useState<ActivityItem[]>([]);
 
   useEffect(() => {
-    const read = () => setItems(readValue<ActivityItem[]>(ACTIVITY_KEY, []));
+    const read = () => setItems(normalise(readValue<ActivityItem[]>(ACTIVITY_KEY, [])));
     read();
     return subscribeStore(read);
   }, []);
@@ -217,13 +282,25 @@ export function useActivity() {
   return { items, clear };
 }
 
+/** Re-renders on an interval so relative timestamps stay current. */
+export function useTicker(everyMs = 30000) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), everyMs);
+    return () => window.clearInterval(id);
+  }, [everyMs]);
+}
+
 export function timeAgo(ts: number) {
   const diff = Math.max(0, Date.now() - ts);
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins} min ago`;
+  if (mins === 1) return "1 minute ago";
+  if (mins < 60) return `${mins} minutes ago`;
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours === 1) return "1 hour ago";
+  if (hours < 24) return `${hours} hours ago`;
   const days = Math.floor(hours / 24);
-  return days === 1 ? "Yesterday" : `${days}d ago`;
+  return days === 1 ? "Yesterday" : `${days} days ago`;
 }
+
